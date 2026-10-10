@@ -52,7 +52,12 @@ public class MapImage extends JavaPlugin implements CommandExecutor {
 
     @Override
     public void onEnable() {
-        this.getCommand("mapimage").setExecutor(this);
+        PluginCommand command = this.getCommand("mapimage");
+        if (command != null) {
+            command.setExecutor(this);
+        } else {
+            throw new RuntimeException("Command 'mapimage' not found in the config!");
+        }
         saveDefaultConfig();
         config = getConfig();
 
