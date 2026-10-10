@@ -3,6 +3,8 @@ package com.tommustbe12.mapImage;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.World;
+import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.command.Command;
@@ -15,6 +17,7 @@ import org.bukkit.map.MapCanvas;
 import org.bukkit.map.MapView;
 import org.bukkit.map.MapRenderer;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.jetbrains.annotations.NotNull;
 
 import javax.imageio.ImageIO;
 import java.awt.Graphics2D;
@@ -87,14 +90,12 @@ public class MapImage extends JavaPlugin implements CommandExecutor {
                         if ("local".equals(source)) {
                             String fileName = entry.getString("file");
                             if (fileName != null) {
-                                int finalMapId = mapId;
-                                mapQueue.add(() -> reRenderMapFromFile(finalMapId, fileName, row, col, totalRows, totalCols));
+                                mapQueue.add(() -> reRenderMapFromFile(mapId, fileName, row, col, totalRows, totalCols));
                             }
                         } else {
                             String url = entry.getString("url");
                             if (url != null) {
-                                int finalMapId = mapId;
-                                mapQueue.add(() -> reRenderMapAsync(finalMapId, url, row, col, totalRows, totalCols));
+                                mapQueue.add(() -> reRenderMapAsync(mapId, url, row, col, totalRows, totalCols));
                             }
                         }
 
@@ -111,7 +112,7 @@ public class MapImage extends JavaPlugin implements CommandExecutor {
     }
 
     @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String[] args) {
         if (!(sender instanceof Player player)) {
             sender.sendMessage("Only players can use this command.");
             return true;
@@ -218,7 +219,7 @@ public class MapImage extends JavaPlugin implements CommandExecutor {
                 final byte[] tilePixels = pixels;
 
                 mapQueue.add(() -> createMapOnMainThread(
-                        player.getWorld().getName(), url, source, fileName,
+                        player.getWorld(), url, source, fileName,
                         row, col, finalRows, finalCols, tilePixels, player));
             }
         }
@@ -227,11 +228,11 @@ public class MapImage extends JavaPlugin implements CommandExecutor {
         player.sendMessage(ChatColor.GREEN + "Queued map image creation: " + finalRows + "x" + finalCols);
     }
 
-    private void createMapOnMainThread(String worldName, String url, String source, String fileName,
+    private void createMapOnMainThread(World world, String url, String source, String fileName,
                                        int row, int col, int totalRows, int totalCols,
                                        byte[] pixels, Player giver) {
         try {
-            MapView mapView = Bukkit.createMap(Bukkit.getWorld(worldName));
+            MapView mapView = Bukkit.createMap(world);
             int mapId = mapView.getId();
 
             mapView.getRenderers().forEach(mapView::removeRenderer);
@@ -378,7 +379,7 @@ public class MapImage extends JavaPlugin implements CommandExecutor {
         }
 
         @Override
-        public void render(MapView view, MapCanvas canvas, org.bukkit.entity.Player player) {
+        public void render(@NotNull MapView view, @NotNull MapCanvas canvas, org.bukkit.entity.@NotNull Player player) {
             for (int y = 0; y < TILE_SIZE; y++) {
                 for (int x = 0; x < TILE_SIZE; x++) {
                     canvas.setPixel(x, y, pixels[y * TILE_SIZE + x]);
@@ -387,19 +388,5 @@ public class MapImage extends JavaPlugin implements CommandExecutor {
         }
     }
 
-    private static class MapData {
-        final String url;
-        final int row;
-        final int col;
-        final int totalRows;
-        final int totalCols;
-
-        MapData(String url, int row, int col, int totalRows, int totalCols) {
-            this.url = url;
-            this.row = row;
-            this.col = col;
-            this.totalRows = totalRows;
-            this.totalCols = totalCols;
-        }
-    }
+    private record MapData(String url, int row, int col, int totalRows, int totalCols) { }
 }
