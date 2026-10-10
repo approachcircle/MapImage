@@ -48,7 +48,10 @@ public class MapImage extends JavaPlugin implements CommandExecutor {
             ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp"
     );
 
-    private static final String DISCORD_CDN_URL = "cdn.discordapp.com";
+    private static final String[] DISCORD_CDN_URLS = {
+            "media.discordapp.net",
+            "cdn.discordapp.com"
+    };
 
     @Override
     public void onEnable() {
@@ -135,7 +138,7 @@ public class MapImage extends JavaPlugin implements CommandExecutor {
 
         String input = args[0];
 
-        if (input.contains(DISCORD_CDN_URL)) {
+        if (isDiscordLink(input)) {
             player.sendMessage(ChatColor.RED + "Image links from discord are not allowed as they expire after a day.");
             return true;
         }
@@ -275,7 +278,7 @@ public class MapImage extends JavaPlugin implements CommandExecutor {
             silently skip discord CDN images so that we don't flood the console, since they will NEVER actually resolve.
             discord CDN links are disallowed anyway, so this is just a proactive fix
              */
-            if (url.contains(DISCORD_CDN_URL)) return;
+            if (isDiscordLink(url)) return;
 
             try (InputStream in = new URL(url).openStream()) {
                 BufferedImage original = ImageIO.read(in);
@@ -373,6 +376,13 @@ public class MapImage extends JavaPlugin implements CommandExecutor {
         meta.setMapView(view);
         mapItem.setItemMeta(meta);
         return mapItem;
+    }
+
+    private boolean isDiscordLink(String url) {
+        for (String discordUrl : DISCORD_CDN_URLS) {
+            if (url.contains(discordUrl)) return true;
+        }
+        return false;
     }
 
     private static class PersistentRenderer extends MapRenderer {
