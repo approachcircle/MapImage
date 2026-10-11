@@ -24,6 +24,8 @@ import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.Arrays;
@@ -287,7 +289,13 @@ public class MapImage extends JavaPlugin implements CommandExecutor {
                 byte[] pixels = extractTilePixels(original, row, col, totalRows, totalCols);
 
                 mapQueue.add(() -> applyRendererToExistingMap(mapId, pixels));
-            } catch (Exception e) {
+            } catch (IOException e) {
+                if (e instanceof FileNotFoundException) {
+                    // if the image link is returning 404 and therefore the link is not a valid image link any more,
+                    // then don't display the entire stack trace, just log a message at least.
+                    getLogger().log(Level.WARNING, String.format("Map image URL not found at: %s", url));
+                    return;
+                }
                 getLogger().log(Level.WARNING, "Failed to re-download map image: " + url, e);
             }
         });
